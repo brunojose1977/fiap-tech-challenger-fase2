@@ -7,6 +7,16 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import recall_score, confusion_matrix, accuracy_score
+import base64
+import os
+from openai import OpenAI
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import inch
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak
+from reportlab.lib.enums import TA_JUSTIFY, TA_CENTER
+from datetime import datetime
+import re
 
 # --- 1. PREPARAÇÃO DOS DADOS ---
 df = pd.read_csv('datasets/diabetes.csv')
@@ -170,4 +180,284 @@ print(f"{'RANK':<4} | {'FITNESS':<8} | {'RECALL':<7} | {'FP':<4} | {'FN':<4} | {
 print("-" * 110)
 for i, (idx, row) in enumerate(df_ranking.iterrows(), 1):
     print(f"{i:<4} | {row['fitness']:<8.1f} | {row['recall']:<7.2%} | {int(row['fp']):<4} | {int(row['fn']):<4} | {row['acc']:<6.2%} | {row['c']:<7.3f} | {row['solver']:<10} | {row['iqr']:<4.2f} | {int(row['features'])}")
+print("="*110)
+
+# --- 7. INTEGRAÇÃO COM LLM PARA ANÁLISE E GERAÇÃO DE RELATÓRIO PDF ---
+
+def encode_image(image_path):
+    """Codifica uma imagem em base64 para envio ao LLM."""
+    with open(image_path, "rb") as image_file:
+        return base64.b64encode(image_file.read()).decode('utf-8')
+
+def analisar_resultados_com_llm(imagem1_path, imagem2_path, imagem3_path):
+    """
+    Envia as três imagens para o LLM e solicita uma análise detalhada dos resultados.
+    Retorna o texto da análise gerada pelo LLM.
+    """
+    # Verifica se a API key está configurada
+    #api_key = os.getenv('OPENAI_API_KEY')
+    #api_key = "{OPEN_AI_CHAT_GPT_CONTA_BRUNOJOSE1977_API_KEY}"
+    #if not api_key:
+    #    print("\n⚠️  AVISO: OPENAI_API_KEY não encontrada nas variáveis de ambiente.")
+    #    print("   Por favor, configure a variável de ambiente OPENAI_API_KEY com sua chave da OpenAI.")
+    #    print("   Exemplo: export OPENAI_API_KEY='sua-chave-aqui'")
+    #    return None
+    
+    try:
+        # carregando a chave api_key "OPEN_AI_CHAT_GPT_CONTA_BRUNOJOSE1977_API_KEY" configurada em .env e disponível como variável de ambiente
+        from dotenv import load_dotenv
+        load_dotenv()    
+        
+        # carregando a chave diretamente da variável de ambiente do S.O
+        client = OpenAI(api_key=os.getenv("OPENAI_CHAT_GPT_CONTA_BRUNOJOSE1977_API_KEY"))
+        
+        # Codifica as imagens
+        print("\n📊 Codificando imagens para análise pelo LLM...")
+        img1_base64 = encode_image(imagem1_path)
+        img2_base64 = encode_image(imagem2_path)
+        img3_base64 = encode_image(imagem3_path)
+        
+        # Prompt detalhado para análise
+        prompt = """Você é um especialista em Machine Learning, Algoritmos Genéticos e análise de resultados de modelos de classificação.
+
+Analise as três imagens fornecidas que mostram os resultados de um experimento de otimização de modelo de Regressão Logística usando Algoritmos Genéticos para diagnóstico de diabetes.
+
+As imagens mostram:
+1. Gráfico de evolução linear da função de fitness ao longo das gerações
+2. Matrizes de confusão comparando o modelo original vs o modelo otimizado por algoritmos genéticos
+3. Gráfico de barras comparativo mostrando Recall, Falsos Positivos e Falsos Negativos
+
+Gere um relatório técnico completo e profissional em português brasileiro que inclua:
+
+1. **Resumo Executivo**: Visão geral dos resultados obtidos
+2. **Análise da Evolução do Algoritmo Genético**: Interpretação do gráfico de evolução da fitness
+3. **Análise Comparativa dos Modelos**: Comparação detalhada entre modelo original e otimizado
+4. **Análise das Matrizes de Confusão**: Interpretação dos resultados de classificação
+5. **Análise das Métricas de Performance**: Recall, Falsos Positivos, Falsos Negativos
+6. **Conclusões e Insights**: Principais descobertas e recomendações
+7. **Impacto Prático**: Significado dos resultados para o diagnóstico de diabetes
+
+Seja detalhado, técnico e forneça insights valiosos sobre a otimização realizada."""
+        
+        print("🤖 Enviando imagens para análise pelo LLM (GPT-4 Vision)...")
+        
+        response = client.chat.completions.create(
+            model="gpt-4o",  # ou "gpt-4-turbo" se disponível
+            messages=[
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": prompt},
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:image/png;base64,{img1_base64}",
+                                "detail": "high"
+                            }
+                        },
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:image/png;base64,{img2_base64}",
+                                "detail": "high"
+                            }
+                        },
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:image/png;base64,{img3_base64}",
+                                "detail": "high"
+                            }
+                        }
+                    ]
+                }
+            ],
+            max_tokens=4000
+        )
+        
+        analise = response.choices[0].message.content
+        print("✅ Análise gerada com sucesso pelo LLM!")
+        return analise
+        
+    except Exception as e:
+        print(f"\n❌ Erro ao comunicar com o LLM: {str(e)}")
+        return None
+
+def gerar_relatorio_pdf(analise_texto, output_path, dados_ranking=None):
+    """
+    Gera um relatório em PDF com a análise fornecida pelo LLM.
+    """
+    if not analise_texto:
+        print("⚠️  Não foi possível gerar o PDF: análise não disponível.")
+        return False
+    
+    try:
+        print(f"\n📄 Gerando relatório PDF: {output_path}")
+        
+        # Cria o documento PDF
+        doc = SimpleDocTemplate(output_path, pagesize=A4)
+        story = []
+        
+        # Estilos
+        styles = getSampleStyleSheet()
+        
+        # Título principal
+        title_style = ParagraphStyle(
+            'CustomTitle',
+            parent=styles['Heading1'],
+            fontSize=20,
+            textColor='#2c3e50',
+            spaceAfter=30,
+            alignment=TA_CENTER,
+            fontName='Helvetica-Bold'
+        )
+        
+        # Subtítulo
+        subtitle_style = ParagraphStyle(
+            'CustomSubtitle',
+            parent=styles['Heading2'],
+            fontSize=14,
+            textColor='#34495e',
+            spaceAfter=20,
+            alignment=TA_CENTER
+        )
+        
+        # Corpo do texto
+        body_style = ParagraphStyle(
+            'CustomBody',
+            parent=styles['Normal'],
+            fontSize=11,
+            textColor='#2c3e50',
+            spaceAfter=12,
+            alignment=TA_JUSTIFY,
+            leading=14
+        )
+        
+        # Título do relatório
+        story.append(Paragraph("Relatório de Análise de Resultados", title_style))
+        story.append(Spacer(1, 0.2*inch))
+        
+        # Subtítulo
+        story.append(Paragraph("Regressão Logística e Algoritmos Genéticos", subtitle_style))
+        story.append(Paragraph("Tech Challenger 2 - Fase 2", subtitle_style))
+        story.append(Spacer(1, 0.3*inch))
+        
+        # Data
+        data_atual = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+        story.append(Paragraph(f"<i>Gerado em: {data_atual}</i>", styles['Normal']))
+        story.append(Spacer(1, 0.4*inch))
+        
+        # Divide o texto da análise em seções e formata markdown
+        linhas = analise_texto.split('\n')
+        i = 0
+        while i < len(linhas):
+            linha = linhas[i].strip()
+            
+            if not linha:
+                story.append(Spacer(1, 0.1*inch))
+                i += 1
+                continue
+            
+            # Detecta títulos markdown (# ## ###)
+            if linha.startswith('###'):
+                titulo = linha.replace('###', '').strip()
+                if titulo:
+                    story.append(Spacer(1, 0.15*inch))
+                    story.append(Paragraph(f"<b>{titulo}</b>", styles['Heading3']))
+                    story.append(Spacer(1, 0.08*inch))
+            elif linha.startswith('##'):
+                titulo = linha.replace('##', '').strip()
+                if titulo:
+                    story.append(Spacer(1, 0.2*inch))
+                    story.append(Paragraph(f"<b>{titulo}</b>", styles['Heading2']))
+                    story.append(Spacer(1, 0.1*inch))
+            elif linha.startswith('#'):
+                titulo = linha.replace('#', '').strip()
+                if titulo:
+                    story.append(Spacer(1, 0.25*inch))
+                    story.append(Paragraph(f"<b>{titulo}</b>", styles['Heading1']))
+                    story.append(Spacer(1, 0.15*inch))
+            else:
+                # Processa texto com formatação markdown
+                texto_formatado = linha
+                # Converte **texto** para <b>texto</b>
+                texto_formatado = re.sub(r'\*\*(.+?)\*\*', r'<b>\1</b>', texto_formatado)
+                # Converte *texto* para <i>texto</i> (mas não se já foi processado como negrito)
+                texto_formatado = re.sub(r'(?<!\*)\*([^*]+?)\*(?!\*)', r'<i>\1</i>', texto_formatado)
+                # Escapa caracteres especiais HTML, mas preserva tags que criamos
+                texto_formatado = texto_formatado.replace('&', '&amp;')
+                # Restaura as tags HTML que criamos após escape
+                texto_formatado = texto_formatado.replace('&amp;lt;b&amp;gt;', '<b>').replace('&amp;lt;/b&amp;gt;', '</b>')
+                texto_formatado = texto_formatado.replace('&amp;lt;i&amp;gt;', '<i>').replace('&amp;lt;/i&amp;gt;', '</i>')
+                texto_formatado = texto_formatado.replace('&lt;b&gt;', '<b>').replace('&lt;/b&gt;', '</b>')
+                texto_formatado = texto_formatado.replace('&lt;i&gt;', '<i>').replace('&lt;/i&gt;', '</i>')
+                
+                if texto_formatado.strip():
+                    story.append(Paragraph(texto_formatado, body_style))
+            
+            i += 1
+        
+        # Adiciona informações do ranking se disponível
+        if dados_ranking is not None and len(dados_ranking) > 0:
+            story.append(PageBreak())
+            story.append(Spacer(1, 0.2*inch))
+            story.append(Paragraph("<b>Top 5 Configurações do Algoritmo Genético</b>", styles['Heading2']))
+            story.append(Spacer(1, 0.2*inch))
+            
+            for i, row in enumerate(dados_ranking.head(5).iterrows(), 1):
+                idx, data = row
+                story.append(Paragraph(
+                    f"<b>Rank {i}:</b> Fitness={data['fitness']:.1f}, "
+                    f"Recall={data['recall']:.2%}, FP={int(data['fp'])}, FN={int(data['fn'])}, "
+                    f"Acc={data['acc']:.2%}, C={data['c']:.3f}, Solver={data['solver']}, "
+                    f"IQR={data['iqr']:.2f}, Features={int(data['features'])}",
+                    body_style
+                ))
+                story.append(Spacer(1, 0.1*inch))
+        
+        # Constrói o PDF
+        doc.build(story)
+        print(f"✅ Relatório PDF gerado com sucesso: {output_path}")
+        return True
+        
+    except Exception as e:
+        print(f"❌ Erro ao gerar PDF: {str(e)}")
+        return False
+
+# Executa a análise e geração do relatório
+print("\n" + "="*110)
+print("INICIANDO ANÁLISE COM LLM E GERAÇÃO DE RELATÓRIO PDF")
+print("="*110)
+
+imagens = [
+    'grafico_evolucao_linear.png',
+    'matrizes_confusao_antes_depois.png',
+    'grafico_barras_comparativo.png'
+]
+
+# Verifica se todas as imagens existem
+imagens_existentes = [img for img in imagens if os.path.exists(img)]
+if len(imagens_existentes) == 3:
+    analise = analisar_resultados_com_llm(imagens[0], imagens[1], imagens[2])
+    
+    if analise:
+        # Prepara dados do ranking para incluir no PDF
+        df_ranking_pdf = pd.DataFrame(ranking_data).sort_values(by='fitness', ascending=False).drop_duplicates(subset=['c', 'iqr']).head(5)
+        
+        sucesso = gerar_relatorio_pdf(
+            analise,
+            'Relatorio_Resultado_TechChallenger2_Regressao_logistica_e_Algorimos_geneticos.pdf',
+            df_ranking_pdf
+        )
+        
+        if sucesso:
+            print("\n✅ Processo concluído com sucesso!")
+        else:
+            print("\n⚠️  Relatório PDF não pôde ser gerado.")
+    else:
+        print("\n⚠️  Análise não foi gerada. Verifique a configuração da API key.")
+else:
+    print(f"\n⚠️  Algumas imagens não foram encontradas. Encontradas: {len(imagens_existentes)}/3")
+    print(f"   Imagens esperadas: {imagens}")
+
 print("="*110)

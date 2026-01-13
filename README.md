@@ -35,6 +35,29 @@
 
     Estamos utilizando Algoritmos Genéticos para explorar e maximizar o uso dos metaparametros em busca de maior otimização dos resultados.
 
+    ### Integração com LLM para Análise Automática
+
+    O programa agora inclui integração com LLM (GPT-4 Vision) para análise automática dos resultados. Após a execução dos algoritmos genéticos e geração dos gráficos, o sistema:
+
+    1. Envia as três imagens geradas (evolução linear, matrizes de confusão e gráfico comparativo) para o LLM
+    2. Solicita uma análise técnica detalhada dos resultados
+    3. Gera automaticamente um relatório em PDF com a análise
+
+    **Configuração necessária:**
+
+    Para utilizar esta funcionalidade, é necessário configurar a variável de ambiente `OPENAI_API_KEY`:
+
+    ```bash
+    export OPENAI_API_KEY='sua-chave-api-aqui'
+    ```
+
+    Ou no Windows:
+    ```cmd
+    set OPENAI_API_KEY=sua-chave-api-aqui
+    ```
+
+    O relatório será gerado automaticamente como: `Relatorio_Resultado_TechChallenger2_Regressao_logistica_e_Algorimos_geneticos.pdf`
+
 -----------------------
 ## Dataset Utilizado
 -----------------------
