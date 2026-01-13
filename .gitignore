@@ -25,6 +25,7 @@ share/python-wheels/
 .installed.cfg
 *.egg
 MANIFEST
+env/
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
@@ -205,3 +206,7 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+#GitIgnore
+.gitignore
+#  Ignore this file itself to prevent accidental commits of changes to it.
