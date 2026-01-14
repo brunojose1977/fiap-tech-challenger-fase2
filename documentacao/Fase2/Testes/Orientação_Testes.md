@@ -10,4 +10,4 @@
    pytest test_diabetes_regressao_logistica.py::TestDataPreparation -v
   
 ### Executar testes com cobertura
-      
+     pytest test_diabetes_regressao_logistica.py --cov=. --cov-report=html 
