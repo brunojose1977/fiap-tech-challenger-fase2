@@ -204,12 +204,12 @@ def analisar_resultados_com_llm(imagem1_path, imagem2_path, imagem3_path):
     #    return None
     
     try:
-        # carregando a chave api_key "OPEN_AI_CHAT_GPT_CONTA_BRUNOJOSE1977_API_KEY" configurada em .env e disponível como variável de ambiente
+        # carregando a chave api_key "OPEN_AI_CHATGPT_FIAP_TECHCHALLENGER_2_LLM_API_KEY" configurada em .env e disponível como variável de ambiente
         from dotenv import load_dotenv
         load_dotenv()    
         
         # carregando a chave diretamente da variável de ambiente do S.O
-        client = OpenAI(api_key=os.getenv("OPENAI_CHAT_GPT_CONTA_BRUNOJOSE1977_API_KEY"))
+        client = OpenAI(api_key=os.getenv("OPEN_AI_CHATGPT_FIAP_TECHCHALLENGER_2_LLM_API_KEY"))
         
         # Codifica as imagens
         print("\n📊 Codificando imagens para análise pelo LLM...")

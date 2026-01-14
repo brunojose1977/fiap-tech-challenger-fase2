@@ -48,3 +48,5 @@ tzdata==2025.2
 wcwidth==0.2.14
 openai==1.107.0
 reportlab>=4.0.0
+pytest>=7.0.0
+pytest-cov>=4.0.0
