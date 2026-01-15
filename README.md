@@ -43,20 +43,6 @@
     2. Solicita uma análise técnica detalhada dos resultados
     3. Gera automaticamente um relatório em PDF com a análise
 
-    **Configuração necessária:**
-
-    Para utilizar esta funcionalidade, é necessário configurar a variável de ambiente `OPENAI_API_KEY`:
-
-    ```bash
-    export OPENAI_API_KEY='sua-chave-api-aqui'
-    ```
-
-    Ou no Windows:
-    ```cmd
-    set OPENAI_API_KEY=sua-chave-api-aqui
-    ```
-
-    O relatório será gerado automaticamente como: `Relatorio_Resultado_TechChallenger2_Regressao_logistica_e_Algorimos_geneticos.pdf`
 
 -----------------------
 ## Dataset Utilizado
@@ -80,4 +66,50 @@
 
     - https://www.kaggle.com/uciml/pima-indians-diabetes-database
 
+-------------------------
+## Guia de Configuração
+-------------------------
+# Criar um ambiente virtual 
+python3 -m venv env
+
+# Rodar o ambiente virtual
+source ./env/bin/activate
+
+# Instalar todas as dependencias
+pip install -r REQUIREMENTS.txt
+
+# Configurar a Chave API OPENAI CHATGPT
+
+vi .env
+  
+OPEN_AI_CHATGPT_FIAP_TECHCHALLENGER_2_LLM_API_KEY='COLOQUE AQUI A SUA CHAVE OPENAI CHATGPT, EXEMPLO: sk-proj-kT7DzVWH-yNj9-mqrXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX'
+    
+-------------------------
+## Guia de Execução
+-------------------------    
+# Executar cobertura de testes
+   
+### rodar todos os testes 
+   pytest test_diabetes_regressao_logistica.py -v
+   
+### Executar testes específicos
+   pytest test_diabetes_regressao_logistica.py::TestDataPreparation -v
+  
+### Executar testes com cobertura
+    pytest test_diabetes_regressao_logistica.py --cov=. --cov-report=html
+
+# Programa principal
+    diabetes_regressao_logistica_com_algoritmos_geneticos.py
+    
+--------------------------------------------------------------------------------------------
+## Arquivos gerados pelo Programa e utilizado pelo LLM ChatGPT para gerar o relatório final
+--------------------------------------------------------------------------------------------     
+    grafico_barras_comparativo.png
+    grafico_evolucao_linear.png
+    matrizes_confusao_antes_depois.png
+
+--------------------------------------------------------------------------------------------
+## Relatório PDF geradopelo LLM ChatGPT com base nas imagens geradas pelo programa
+--------------------------------------------------------------------------------------------   
+    Relatorio_Resultado_TechChallenger2_Regressao_logistica_e_Algorimos_geneticos.pdf
 
